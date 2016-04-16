@@ -3,6 +3,7 @@ from kombu.mixins import ConsumerMixin
 from kombu import Connection, Exchange, Queue
 # FIXME resolve import issues.
 from config import config
+from utils import config_logger
 from models.tables import DataAccessLayer, Item
 from sqlalchemy import exc
 import logging
@@ -13,8 +14,7 @@ class Dumper(ConsumerMixin):
     def __init__(self, connection=None):
         # TODO: need a proper logger config func
         self.logger = logging.getLogger(type(self).__name__)
-        self.logger.setLevel(config.log_level)
-        self.logger.addHandler(logging.StreamHandler())
+        config_logger(self.logger)
 
         queue_config = config.queue
         if connection:
