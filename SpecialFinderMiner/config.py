@@ -16,7 +16,7 @@ DEFAULT_CONF = AttrDict({
 
 def load_config(conf_path=None):
     if conf_path:
-        with open(conf_path=conf_path) as fp:
+        with open(conf_path) as fp:
             conf = AttrDict(yaml.safe_load(fp))
             return conf
     # No conf path was defined, default one will be used.
