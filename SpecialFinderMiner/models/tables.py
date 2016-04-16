@@ -1,5 +1,5 @@
 from sqlalchemy import (Column, Integer, String, Unicode,
-                        Float, Date, create_engine)
+                        Float, Date, create_engine, UniqueConstraint)
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -7,13 +7,13 @@ class DataAccessLayer(object):
 
     def __init__(self):
         self.engine = None
-        self.conn_string = None
+        self.conn_str = None
 
     def connect(self):
-        self.engine = create_engine(self.conn_string)
+        self.engine = create_engine(self.conn_str)
         self.Session = sessionmaker(bind=self.engine)
-
-dal = DataAccessLayer()
+        self.session = self.Session()
+        self.engine.connect()
 
 class Base(object):
     id = Column(Integer, primary_key=True)
@@ -22,6 +22,7 @@ Base = declarative_base(cls=Base)
 
 class Item(Base):
     __tablename__ = 'items'
+    __table_args__ = (UniqueConstraint('title', 'date'), )
 
     title = Column(Unicode(255), nullable=False, index=True)
     price = Column(Float, nullable=False)
