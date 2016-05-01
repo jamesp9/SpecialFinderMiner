@@ -31,13 +31,3 @@ class Item(Base):
     image_url = Column(String(255), nullable=True)
     date = Column(Date, nullable=False)
     vendor = Column(Unicode(50), nullable=False)
-
-class LowestPriceItem(Base):
-    __tablename__ = 'min_items'
-
-    title = Column(Unicode(255), nullable=False, index=True)
-    price = Column(Float, nullable=False)
-    per = Column(String(25), nullable=True)
-    url = Column(String(255), nullable=True)
-    image_url = Column(String(255), nullable=True)
-    vendor = Column(Unicode(50), nullable=False)

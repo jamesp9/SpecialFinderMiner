@@ -11,6 +11,10 @@ DEFAULT_CONF = AttrDict({
         'serializer': ['msgpack'],
     },
     'db_conn': 'postgresql://dev:dev@localhost:5434/dev',
+    'elasticsearch': {
+        'hosts': ['localhost'],
+        'index': 'specialfinder',
+    }
 
 })
 
