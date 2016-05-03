@@ -14,56 +14,45 @@ class LowestPriceFinder(object):
     lowest_price_mapping = {
         'properties': {
             'title': {
-                'type': 'string'
+                'type': 'string',
+                'index' : 'not_analyzed'
             },
             'price': {
-                'type': 'double'
+                'type': 'double',
+                'index' : 'not_analyzed'
             },
             'per': {
-                'type': 'string'
-            },
-            'url': {
-                'type': 'string'
+                'type': 'string',
+                'index' : 'not_analyzed'
             },
             'vendor': {
-                'type': 'string'
+                'type': 'string',
+                'index' : 'not_analyzed'
             }
         }
     }
 
     @staticmethod
-    def lowest_price_doc(title, price, per, url, vendor):
+    def lowest_price_doc(title, price, per, vendor):
         lowest_price_doc = {
             'title': title,
             'price': price,
             'per': per,
-            'url': url,
             'vendor': vendor
         }
+        print lowest_price_doc
         return lowest_price_doc
 
     @staticmethod
     def lowest_price_query(title, per, vendor):
         lowest_price_query = \
-        {'query':
+        {"query":
              {
-               'bool': {
-                  'must': [
-                    {
-                        'term': {
-                            'title': title
-                        }
-                    },
-                    {
-                        'term': {
-                            'per': per
-                        }
-                    },
-                    {
-                        'term': {
-                            'vendor': vendor
-                        }
-                    }
+               "bool": {
+                  "must": [
+                    { "term": {"title": title} },
+                    { "term": {"per": per} },
+                    { "term": {"vendor": vendor} }
                    ]
                 }
              }
@@ -95,14 +84,12 @@ class LowestPriceFinder(object):
         lowest_prices = dal.session.query(Item.title,
                                           Item.per,
                                           Item.vendor,
-                                          Item.url,
-                                          func.min(Item.price).label('min_price'),
+                                          func.min(Item.price),
                                          ).group_by(Item.title,
                                                     Item.per,
-                                                    Item.vendor,
-                                                    Item.url).all()
-        lowest_prices_dict = {(title, per, vendor): (price, url)
-                              for title, per, vendor, url, price in
+                                                    Item.vendor).all()
+        lowest_prices_dict = {(title, per, vendor): float(price)
+                              for title, per, vendor, price in
                               lowest_prices}
         for t, p in lowest_prices_dict.items():
             # FIXME: error handling here
@@ -112,14 +99,16 @@ class LowestPriceFinder(object):
 
             if not res['hits']['hits']:  # The item is not existed
                 logger.info(u'Lower price of %s found at the first time: %f',
-                             t[0], p[0])
+                             t[0], p)
                 es.create(index=self.index_name,
                           doc_type=self.es_type,
-                          body=self.lowest_price_doc(t[0], p[0], t[1],
-                                                     p[1], t[2]))
+                          body=self.lowest_price_doc(t[0], p, t[1], t[2]))
             else:
-                print "aaa"
-
+                price = float(res['hits']['hits'][0]['_source']['price'])
+                title = res['hits']['hits'][0]['_source']['title']
+                if p < price:
+                    logger.info(u'Lower price of %s found: %f', t[0], p)
+                    
 
 def init():
     global es
