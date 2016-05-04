@@ -104,12 +104,17 @@ class LowestPriceFinder(object):
                           doc_type=self.es_type,
                           body=self.lowest_price_doc(t[0], p, t[1], t[2]))
             else:
-                price = float(res['hits']['hits'][0]['_source']['price'])
-                title = res['hits']['hits'][0]['_source']['title']
+                item = res['hits']['hits'][0]
+                price = float(item['_source']['price'])
+                title = item['_source']['title']
                 if p < price:
                     logger.info(u'Lower price of %s found: %f', t[0], p)
-                    
-
+                    es.update(index=self.index_name,
+                              doc_type=self.es_type,
+                              id=item['_id'],
+                              body={"doc": {"price": p}})
+                    logger.debug(u'Updated item %s with price %f',
+                                 item['_id'], p)
 def init():
     global es
     try:
