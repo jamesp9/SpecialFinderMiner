@@ -3,12 +3,12 @@ from sqlalchemy.sql import func
 from sqlalchemy import exc
 from models.tables import DataAccessLayer, Item
 from elasticsearch import Elasticsearch, TransportError, RequestError
+
+from notifier import Notifier
 from utils import config_logger
 from config import config
 import logging
 
-dal = DataAccessLayer()
-logger = logging.getLogger(__file__)
 
 class LowestPriceFinder(object):
 
@@ -120,7 +120,6 @@ class LowestPriceFinder(object):
 
 
         for t, p in lowest_prices_dict.items():
-            # FIXME: error handling here
             try:
                 res = es.search(index=self.index_name,
                                 doc_type=self.es_type,
@@ -137,7 +136,10 @@ class LowestPriceFinder(object):
                     price = float(item['_source']['price'])
                     title = item['_source']['title']
                     if p < price: # If lower price of the item is found
-                        logger.info(u'Lower price of %s found: %f', t[0], p)
+                        msg = u'Lower price of "{item}" found at {vendor}: {price}'.format(
+                            item=t[0], price=p, vendor=t[2])
+                        logger.info(msg)
+                        notifier.send_message(msg)  # Send notification
                         es.update(index=self.index_name,
                                   doc_type=self.es_type,
                                   id=item['_id'],
@@ -148,14 +150,23 @@ class LowestPriceFinder(object):
                 logger.info(u'Error occurred when updating lowest price: %s',
                             e)
 def init():
-    global es
+    global es, dal, logger, notifier
     try:
+        logger = logging.getLogger(__file__)
+
+        # Configure db
+        dal = DataAccessLayer()
         config_logger(logger)
         dal.conn_str = config.db_conn
         dal.connect()
+
+        # Configure elasticsearch
         es = Elasticsearch(config.elasticsearch.hosts)
+
+        # Notifier
+        notifier = Notifier()
     except AttributeError as e:
-        logger.fatal(u'Incomplete configuration')
+        logger.fatal(u'Incomplete configuration: %s', e)
         raise SystemExit(-1)
     except (exc.DBAPIError,exc.InvalidRequestError) as e:
         logger.fatal(u'Failed to connect to the db: %s', e)
