@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 from sqlalchemy.sql import func
 from sqlalchemy import exc
-from models.tables import DataAccessLayer, Item
 from elasticsearch import Elasticsearch, TransportError, RequestError
+from datetime import date, timedelta
 
+from models.tables import DataAccessLayer, Item
 from notifier import Notifier
 from utils import config_logger
 from config import config
@@ -14,22 +15,32 @@ class SpecialFinder(object):
     es_type = 'specialfinder_items'
 
     @staticmethod
-    def special_query(title, operator="and"):
+    def special_query(title, operator="and", from_date='1970-01-01'):
         """
         Return a query to find special of an item in the elasticsearch
         @return: item query
         """
         special_query = \
-        {"query":
-             {
-               "match": {
-                  "title": {
-                      "query": title,
-                      "operator": operator,
-                  }
-               }
+        {"query": {
+             "filtered": {
+                 "query": {
+                     "match": {
+                         "title": {
+                             "query": title,
+                             "operator": operator
+                         }
+                     }
+                 },
+                 "filter": {
+                     "range": {
+                         "date": {
+                             "from": from_date
+                         }
+                     }
+                 }
              }
-        }
+
+        }}
         return special_query
 
     def find_special(self, titles=None):
@@ -41,18 +52,23 @@ class SpecialFinder(object):
                 logger.error(u'Failed to find titles in the config: %s', e)
                 return
 
+        from_date = date.today() - timedelta(days=7)  # FIXME: better way to define from_date
+
         for title_entry in titles:
             try:
                 title = title_entry.title
                 operator = title_entry.get('operator', 'and')
                 res = es.search(index=specialfinder_index,
                                 doc_type=self.es_type,
-                                body=self.special_query(title, operator))
+                                body=self.special_query(title,
+                                                        operator,
+                                                        from_date))
 
                 num_special_found = res['hits']['total']
+                logger.info(u'Found %d specials for %s from %s',
+                            num_special_found, title, from_date)
                 if num_special_found > 0:
-                    logger.info(u'Found %d specials for %s',
-                                num_special_found, title)
+
                     for special in res['hits']['hits']:
                         source = special['_source']
                         logger.debug('Special: %s', source)
@@ -135,10 +151,10 @@ class LowestPriceFinder(object):
         """
         try:
             # Even fine if the index is existed.
-            es.indices.create('specialfinder', ignore=[400])
+            es.indices.create(lowest_price_index, ignore=[400])
             es.indices.put_mapping(doc_type=self.es_type,
                                    body=self.lowest_price_mapping,
-                                   index='specialfinder')
+                                   index=lowest_price_index)
         except TransportError as e:
             logger.error(u'Failed to create index or mapping: %s', e)
             return False
@@ -174,14 +190,14 @@ class LowestPriceFinder(object):
 
         for t, p in lowest_prices_dict.items():
             try:
-                res = es.search(index=specialfinder_index,
+                res = es.search(index=lowest_price_index,
                                 doc_type=self.es_type,
                                 body=self.lowest_price_query(t[0], t[1], t[2]))
 
                 if not res['hits']['hits']:  # The item is not existed
                     logger.info(u'Lower price of %s found at the first time: %f',
                                 t[0], p)
-                    es.create(index=specialfinder_index,
+                    es.create(index=lowest_price_index,
                               doc_type=self.es_type,
                               body=self.lowest_price_doc(t[0], p, t[1], t[2]))
                 else:
@@ -193,7 +209,7 @@ class LowestPriceFinder(object):
                             item=t[0], price=p, vendor=t[2])
                         logger.info(msg)
                         notifier.send_message(msg)  # Send notification
-                        es.update(index=specialfinder_index,
+                        es.update(index=lowest_price_index,
                                   doc_type=self.es_type,
                                   id=item['_id'],
                                   body={"doc": {"price": p}})
@@ -203,7 +219,7 @@ class LowestPriceFinder(object):
                 logger.info(u'Error occurred when updating lowest price: %s',
                             e)
 def init():
-    global es, dal, logger, notifier, specialfinder_index
+    global es, dal, logger, notifier, specialfinder_index, lowest_price_index
     try:
         logger = logging.getLogger(__file__)
 
@@ -215,7 +231,8 @@ def init():
 
         # Configure elasticsearch
         es = Elasticsearch(config.elasticsearch.hosts)
-        specialfinder_index = config.elasticsearch.index
+        specialfinder_index = config.elasticsearch.index.special_items
+        lowest_price_index = config.elasticsearch.index.lowest_price
         # Notifier
         notifier = Notifier()
     except AttributeError as e:
@@ -230,7 +247,7 @@ def init():
 
 def main():
     init()
-    # LowestPriceFinder().update_lowest_price()
+    LowestPriceFinder().update_lowest_price()
     SpecialFinder().find_special()
 
 if __name__ == '__main__':
