@@ -12,7 +12,6 @@ import sys
 class Dumper(ConsumerMixin):
 
     def __init__(self, connection=None):
-        # TODO: need a proper logger config func
         self.logger = logging.getLogger(type(self).__name__)
         config_logger(self.logger)
 
