@@ -2,9 +2,11 @@
 from elasticsearch import Elasticsearch, TransportError, RequestError
 from sqlalchemy import exc
 from models.tables import DataAccessLayer, Item
+from datetime import date, timedelta
 from utils import config_logger
 from config import config
 import logging
+import argparse
 
 class Transmitter(object):
 
@@ -87,19 +89,23 @@ class Transmitter(object):
         }
         return item_doc
 
-    def transmit(self, days=-1):
+    def transmit(self, days=1):
         """
         Transmit data from db to elasticsearch
         """
         try:
-            if days == -1:
-                items = self.dal.session.query(Item.title,
-                                               Item.url,
-                                               Item.price,
-                                               Item.per,
-                                               Item.vendor,
-                                               Item.date)
+            items = self.dal.session.query(Item.title,
+                                           Item.url,
+                                           Item.price,
+                                           Item.per,
+                                           Item.vendor,
+                                           Item.date)
+            if days != -1:
+                date_of_data = date.today() - timedelta(days)
+                self.logger.info(u'Going to import data of %s', date_of_data)
+                items = items.filter(Item.date==date_of_data)
 
+            counter = 0
             for item in items:
                 self.logger.debug(u'Add item: %s', item)
                 self.es.create(index=self.index_name,
@@ -110,12 +116,21 @@ class Transmitter(object):
                                                   item[3],
                                                   item[4],
                                                   item[5]))
+                counter += 1
+            self.logger.info(u'Add %d items', counter)
         except TransportError as e:
             self.logger.error(u'Failed to transmit data: %s', e)
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--days',
+                        help='Transfer x days of data, -1 means all data',
+                        type=int,
+                        default=1)
+    args = parser.parse_args()
+
     t = Transmitter()
-    t.transmit()
+    t.transmit(args.days)
 
 if __name__ == '__main__':
     main()
