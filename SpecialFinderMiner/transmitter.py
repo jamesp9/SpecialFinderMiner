@@ -49,7 +49,7 @@ class Transmitter(object):
 
             # Configure elasticsearch
             self.es = Elasticsearch(config.elasticsearch.hosts)
-            self.index_name = config.elasticsearch.index
+            self.index_name = config.elasticsearch.index.special_items
             self.dal.connect()
         except AttributeError as e:
             logger.fatal(u'Incomplete configuration: %s', e)
