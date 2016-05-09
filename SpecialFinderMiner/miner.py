@@ -142,6 +142,7 @@ class LowestPriceFinder(object):
                 }
              }
         }
+        logger.debug(u'Query: %s', lowest_price_query)
         return lowest_price_query
 
 
@@ -190,6 +191,7 @@ class LowestPriceFinder(object):
 
         for t, p in lowest_prices_dict.items():
             try:
+                logger.debug(u'Search entry %s', t)
                 res = es.search(index=lowest_price_index,
                                 doc_type=self.es_type,
                                 body=self.lowest_price_query(t[0], t[1], t[2]))
