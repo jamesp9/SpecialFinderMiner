@@ -6,3 +6,7 @@ miner:
 
 transmitter:
 	${EXPORT_CONF};./SpecialFinderMiner/transmitter.py
+
+
+dumper:
+	${EXPORT_CONF};./SpecialFinderMiner/dumper.py
