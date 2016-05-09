@@ -142,6 +142,9 @@ class LowestPriceFinder(object):
                 }
              }
         }
+        if per is None:  # Remove term of 'per' if it's None
+            del lowest_price_query["query"]["bool"]["must"][1]
+
         logger.debug(u'Query: %s', lowest_price_query)
         return lowest_price_query
 
@@ -218,7 +221,7 @@ class LowestPriceFinder(object):
                         logger.info(u'Updated item %s with price %f',
                                  item['_id'], p)
             except TransportError as e:
-                logger.info(u'Error occurred when updating lowest price: %s',
+                logger.error(u'Error occurred when updating lowest price: %s',
                             e)
 def init():
     global es, dal, logger, notifier, specialfinder_index, lowest_price_index
