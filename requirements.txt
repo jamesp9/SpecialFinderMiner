@@ -1,3 +1,9 @@
 alembic==0.8.5
+attrdict==2.0.0
+elasticsearch==2.3.0
+kombu==3.0.3
+msgpack-python==0.4.7
 psycopg2==2.6.1
+PyYAML==3.11
 SQLAlchemy==1.0.12
+telepot==7.0

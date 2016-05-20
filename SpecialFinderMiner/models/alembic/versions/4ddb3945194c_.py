@@ -1,13 +1,13 @@
 """empty message
 
-Revision ID: 13600f046176
+Revision ID: 4ddb3945194c
 Revises: 
-Create Date: 2016-04-15 23:01:28.431318
+Create Date: 2016-04-16 20:43:31.275109
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '13600f046176'
+revision = '4ddb3945194c'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -27,7 +27,8 @@ def upgrade():
     sa.Column('image_url', sa.String(length=255), nullable=True),
     sa.Column('date', sa.Date(), nullable=False),
     sa.Column('vendor', sa.Unicode(length=50), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('title', 'date')
     )
     op.create_index(op.f('ix_items_title'), 'items', ['title'], unique=False)
     ### end Alembic commands ###
