@@ -3,6 +3,8 @@ It's part of my SpecialFinder project. The SpecialFinderMiner reads the crawl re
 database(PostgreSQL) and Elasticsearch then does some search/mining on the data and notifies me via a
 Telegram bot when it finds something I may be interested in.
 
+## Architecture
+
 ![architecture](specialfinderminer.png)
 
 *Note: The squares in white are the components of SpecialFinderMiner*
