@@ -11,7 +11,7 @@ Telegram bot when it finds something I may be interested in.
 
 * Dumper: Long-running service reads the crawl results from RabbitMQ and writes to PostgreSQL
 * Transmitter: A program syncs database to Elasticsearch
-* Miner: A program analyses the data in the PostgreSQL and Elasticsearch and tries finding products I may be interested in then sends to a Telegram bot to notify the user.
+* Miner: A program analyses the data in the PostgreSQL and Elasticsearch and tries finding products I may be interested in then sends to a Telegram bot to notify me.
 
 ### Development:
 
